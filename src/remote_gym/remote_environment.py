@@ -201,6 +201,7 @@ class RemoteEnvironment(Env):
         timestep = self.remote_environment.step({"action": action})
 
         observation = timestep.observation.get("observation")
+        info = json.loads(timestep.observation.get("info"))
         self.latest_image = timestep.observation.get("rendering", None)
         reward = timestep.reward
         discount_factor = timestep.discount
@@ -217,7 +218,7 @@ class RemoteEnvironment(Env):
             else:
                 truncated = True
 
-        return observation, reward, terminated, truncated, {}
+        return observation, reward, terminated, truncated, info
 
     def reset(self, seed: Optional[int] = None, *args, **kwargs):
         """
@@ -232,9 +233,10 @@ class RemoteEnvironment(Env):
         timestep = self.remote_environment.reset()
 
         observation = timestep.observation.get("observation")
+        info = json.loads(timestep.observation.get("info"))
         self.latest_image = timestep.observation.get("rendering", None)
 
-        return observation, {}
+        return observation, info
 
     def render(self):
         """
