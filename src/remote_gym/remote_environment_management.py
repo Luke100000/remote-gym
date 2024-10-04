@@ -27,6 +27,15 @@ from remote_gym.remote_environment import RemoteArgs
 from remote_gym.repo_manager import RepoManager
 
 
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, (np.float32, np.float64, np.int32, np.int64)):
+            return obj.item()
+        return super().default(obj)
+
+
 def create_remote_environment_server(
     default_args: RemoteArgs,
     url: Text,
@@ -196,6 +205,7 @@ def run_env_loop(
                 dtype=space_to_dtype(env.observation_space),
             ),
             2: dm_env_rpc_pb2.TensorSpec(name="reward", dtype=dm_env_rpc_pb2.FLOAT),
+            3: dm_env_rpc_pb2.TensorSpec(name="info", dtype=dm_env_rpc_pb2.STRING),
         }
 
         action_space_bounds = space_to_bounds(env.action_space)
@@ -217,10 +227,10 @@ def run_env_loop(
             env.reset()
             render_shape = env.render().shape
             observation_spec.update(
-                {3: dm_env_rpc_pb2.TensorSpec(name="rendering", shape=render_shape, dtype=dm_env_rpc_pb2.UINT8)}
+                {4: dm_env_rpc_pb2.TensorSpec(name="rendering", shape=render_shape, dtype=dm_env_rpc_pb2.UINT8)}
             )
             tensor_spec_utils.set_bounds(
-                observation_spec[3],
+                observation_spec[4],
                 minimum=0,
                 maximum=255,
             )
@@ -443,9 +453,13 @@ class RemoteEnvironmentServicer(dm_env_rpc_pb2_grpc.EnvironmentServicer):
                     unpacked_actions = environment.action_manager.unpack(internal_request.actions)
                     action = unpacked_actions.get("action")
 
-                    observation, reward, terminated, truncated, _info, rendering = environment.step(action)
+                    observation, reward, terminated, truncated, info, rendering = environment.step(action)
 
-                    response_observations = {"observation": observation, "reward": reward}
+                    response_observations = {
+                        "observation": observation,
+                        "reward": reward,
+                        "info": json.dumps(info, cls=NumpyEncoder),
+                    }
 
                     if rendering is not None:
                         response_observations.update({"rendering": rendering})
