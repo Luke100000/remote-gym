@@ -169,7 +169,7 @@ def create_gym_environment(args: RemoteArgs) -> Union[gym.Env, gymnasium.Env]:
     entrypoint = args.get("entrypoint", None)
     if entrypoint is None:
         raise ValueError("No entrypoint provided.")
-    entrypoint = Path(entrypoint).resolve().relative_to(Path(".").resolve())
+    entrypoint = Path(entrypoint).resolve().absolute().relative_to(Path(".").resolve())
 
     # Load the entrypoint
     spec = importlib.util.spec_from_file_location("module.name", entrypoint)
