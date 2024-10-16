@@ -13,7 +13,6 @@ import grpc
 import gym
 import gymnasium
 import numpy as np
-import orjson
 import psutil
 from dm_env_rpc.v1 import (
     dm_env_rpc_pb2,
@@ -459,7 +458,7 @@ class RemoteEnvironmentServicer(dm_env_rpc_pb2_grpc.EnvironmentServicer):
                     response_observations = {
                         "observation": observation,
                         "reward": reward,
-                        "info": orjson.dumps(info, option=orjson.OPT_SERIALIZE_NUMPY),
+                        "info": json.dumps(info, cls=NumpyEncoder),
                     }
 
                     if rendering is not None:
